@@ -261,6 +261,11 @@ struct TweeningParameters {
 } tweening_parameters;
 
 
+void GameUpdateLoop()
+{
+	demo_window->Update();
+}
+
 void GameLoop()
 {
 	demo_window->Update();
@@ -506,7 +511,7 @@ int main(int RMLUI_UNUSED_PARAMETER(argc), char** RMLUI_UNUSED_PARAMETER(argv))
 	demo_window->GetDocument()->AddEventListener(Rml::EventId::Keyup, demo_window.get());
 	demo_window->GetDocument()->AddEventListener(Rml::EventId::Animationend, demo_window.get());
 
-	Shell::EventLoop(GameLoop);
+	Shell::EventLoop(GameLoop, GameUpdateLoop);
 
 	demo_window->Shutdown();
 

@@ -311,10 +311,96 @@ void* Shell::GetWindowHandle()
 	return window_handle;
 }
 
-void Shell::EventLoop(ShellIdleFunction idle_function)
+
+
+static bool StartsWith(const Rml::String& subject, const Rml::String& search)
+{
+	return subject.substr(0, search.size()) == search;
+}
+
+static void PlayCommand(const Rml::String& command, Shell::ShellIdleFunction update_function)
+{
+	using namespace Rml;
+
+	auto system_interface = Rml::GetSystemInterface();
+	int x = -1, y = -1, button_index = -1, key_identifier = -1, key_modifier_state = -1;
+	float wheel_delta = 0.f;
+
+	RMLUI_ASSERT(context && system_interface);
+
+	if (StartsWith(command, "Update"))
+	{
+		if (update_function)
+			update_function();
+		context->Update();
+	}
+	else if (StartsWith(command, "Render"))
+	{
+		shell_renderer->PrepareRenderBuffer();
+		context->Render();
+		shell_renderer->PresentRenderBuffer();
+		// Sleep(1);
+	}
+	else if (StartsWith(command, "Clipboard"))
+	{
+		String value = StringUtilities::StripWhitespace(command.substr(String("Clipboard ").size()));
+		value = StringUtilities::Replace(value, "\\n", "\n");
+		value = StringUtilities::Replace(value, "\\r", "\r");
+		value = StringUtilities::Replace(value, "\\t", "\t");
+
+		system_interface->SetClipboardText(value);
+	}
+	else if (sscanf(command.c_str(), "ProcessKeyDown %d %d", &key_identifier, &key_modifier_state) == 2)
+	{
+		context->ProcessKeyDown((Rml::Input::KeyIdentifier)key_identifier, key_modifier_state);
+	}
+	else if (sscanf(command.c_str(), "ProcessKeyUp %d %d", &key_identifier, &key_modifier_state) == 2)
+	{
+		context->ProcessKeyUp((Rml::Input::KeyIdentifier)key_identifier, key_modifier_state);
+	}
+	else if (StartsWith(command, "ProcessTextInput"))
+	{
+		String value = StringUtilities::StripWhitespace(command.substr(String("ProcessTextInput ").size()));
+		value = StringUtilities::Replace(value, "\\n", "\n");
+		value = StringUtilities::Replace(value, "\\r", "\r");
+		value = StringUtilities::Replace(value, "\\t", "\t");
+
+		context->ProcessTextInput(value);
+	}
+	else if (sscanf(command.c_str(), "ProcessMouseMove %d %d %d", &x, &y, &key_modifier_state) == 3)
+	{
+		context->ProcessMouseMove(x, y, key_modifier_state);
+	}
+	else if (sscanf(command.c_str(), "ProcessMouseButtonDown %d %d", &button_index, &key_modifier_state) == 2)
+	{
+		context->ProcessMouseButtonDown(button_index, key_modifier_state);
+	}
+	else if (sscanf(command.c_str(), "ProcessMouseButtonUp %d %d", &button_index, &key_modifier_state) == 2)
+	{
+		context->ProcessMouseButtonUp(button_index, key_modifier_state);
+	}
+	else if (sscanf(command.c_str(), "ProcessMouseWheel %g %d", &wheel_delta, &key_modifier_state) == 2)
+	{
+		context->ProcessMouseWheel(wheel_delta, key_modifier_state);
+	}
+	else
+	{
+		Rml::Log::Message(Rml::Log::LT_INFO, "Unknown command: %s", command.c_str());
+	}
+}
+
+void Shell::EventLoop(ShellIdleFunction idle_function, ShellIdleFunction update_function)
 {
 	MSG message;
 	running = true;
+
+	Rml::String commands_input_file;
+	Rml::StringList command_list;
+
+	if (Rml::GetFileInterface()->LoadFile("input.txt", commands_input_file))
+		Rml::StringUtilities::ExpandString(command_list, commands_input_file, '\n');
+
+	size_t i = 0;
 
 	// Loop on PeekMessage() / GetMessage() until exit has been requested.
 	while (running)
@@ -327,7 +413,24 @@ void Shell::EventLoop(ShellIdleFunction idle_function)
 			DispatchMessage(&message);
 		}
 
-		idle_function();
+		if (command_list.empty())
+		{
+			idle_function();
+		}
+		else
+		{
+			if (i < command_list.size())
+			{
+				PlayCommand(command_list[i], update_function);
+			}
+			else
+			{
+				Rml::Log::Message(Rml::Log::LT_INFO, "Playback complete!");
+				idle_function();
+			}
+
+			i = i + 1;
+		}
 	}
 }
 

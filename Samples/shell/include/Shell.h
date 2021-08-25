@@ -70,7 +70,7 @@ public:
 
 	/// Run the event loop, calling the idle function every frame.
 	using ShellIdleFunction = void(*)();
-	static void EventLoop(ShellIdleFunction idle_function);
+	static void EventLoop(ShellIdleFunction idle_function, ShellIdleFunction update_function = nullptr);
 	static void RequestExit();
 
 	/// Display an error message.

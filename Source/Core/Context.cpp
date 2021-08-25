@@ -167,6 +167,8 @@ float Context::GetDensityIndependentPixelRatio() const
 // Updates all elements in the element tree.
 bool Context::Update()
 {
+	Log::Message(Log::LT_INFO, "Update");
+
 	RMLUI_ZoneScoped;
 
 	// Update all data models first
@@ -191,6 +193,8 @@ bool Context::Update()
 // Renders all visible elements in the element tree.
 bool Context::Render()
 {
+	Log::Message(Log::LT_INFO, "Render");
+
 	RMLUI_ZoneScoped;
 
 	RenderInterface* render_interface = GetRenderInterface();
@@ -519,6 +523,18 @@ void Context::RemoveEventListener(const String& event, EventListener* listener, 
 // Sends a key down event into RmlUi.
 bool Context::ProcessKeyDown(Input::KeyIdentifier key_identifier, int key_modifier_state)
 {
+	if (key_identifier == Input::KI_V && (key_modifier_state & Input::KM_CTRL))
+	{
+		String clipboard;
+		GetSystemInterface()->GetClipboardText(clipboard);
+		clipboard = StringUtilities::Replace(clipboard, "\r", "\\r");
+		clipboard = StringUtilities::Replace(clipboard, "\n", "\\n");
+		clipboard = StringUtilities::Replace(clipboard, "\t", "\\t");
+		Log::Message(Log::LT_INFO, "Clipboard %s", clipboard.c_str());
+	}
+
+	Log::Message(Log::LT_INFO, "ProcessKeyDown %d %d", key_identifier, key_modifier_state);
+
 	// Generate the parameters for the key event.
 	Dictionary parameters;
 	GenerateKeyEventParameters(parameters, key_identifier);
@@ -533,6 +549,8 @@ bool Context::ProcessKeyDown(Input::KeyIdentifier key_identifier, int key_modifi
 // Sends a key up event into RmlUi.
 bool Context::ProcessKeyUp(Input::KeyIdentifier key_identifier, int key_modifier_state)
 {
+	Log::Message(Log::LT_INFO, "ProcessKeyUp %d %d", key_identifier, key_modifier_state);
+
 	// Generate the parameters for the key event.
 	Dictionary parameters;
 	GenerateKeyEventParameters(parameters, key_identifier);
@@ -563,6 +581,11 @@ bool Context::ProcessTextInput(Character character)
 // Sends a string of text as text input into RmlUi.
 bool Context::ProcessTextInput(const String& string)
 {
+	String log_string = StringUtilities::Replace(string, "\r", "\\r");
+	log_string = StringUtilities::Replace(log_string, "\n", "\\n");
+	log_string = StringUtilities::Replace(log_string, "\t", "\\t");
+	Log::Message(Log::LT_INFO, "ProcessTextInput %s", log_string.c_str());
+
 	Element* target = (focus ? focus : root.get());
 
 	Dictionary parameters;
@@ -576,6 +599,8 @@ bool Context::ProcessTextInput(const String& string)
 // Sends a mouse movement event into RmlUi.
 bool Context::ProcessMouseMove(int x, int y, int key_modifier_state)
 {
+	Log::Message(Log::LT_INFO, "ProcessMouseMove %d %d %d", x, y, key_modifier_state);
+
 	// Check whether the mouse moved since the last event came through.
 	Vector2i old_mouse_position = mouse_position;
 	bool mouse_moved = (x != mouse_position.x) || (y != mouse_position.y);
@@ -632,6 +657,8 @@ static Element* FindFocusElement(Element* element)
 // Sends a mouse-button down event into RmlUi.
 bool Context::ProcessMouseButtonDown(int button_index, int key_modifier_state)
 {
+	Log::Message(Log::LT_INFO, "ProcessMouseButtonDown %d %d", button_index, key_modifier_state);
+
 	Dictionary parameters;
 	GenerateMouseEventParameters(parameters, button_index);
 	GenerateKeyModifierEventParameters(parameters, key_modifier_state);
@@ -722,6 +749,8 @@ bool Context::ProcessMouseButtonDown(int button_index, int key_modifier_state)
 // Sends a mouse-button up event into RmlUi.
 bool Context::ProcessMouseButtonUp(int button_index, int key_modifier_state)
 {
+	Log::Message(Log::LT_INFO, "ProcessMouseButtonUp %d %d", button_index, key_modifier_state);
+
 	Dictionary parameters;
 	GenerateMouseEventParameters(parameters, button_index);
 	GenerateKeyModifierEventParameters(parameters, key_modifier_state);
@@ -798,6 +827,8 @@ bool Context::ProcessMouseButtonUp(int button_index, int key_modifier_state)
 // Sends a mouse-wheel movement event into RmlUi.
 bool Context::ProcessMouseWheel(float wheel_delta, int key_modifier_state)
 {
+	Log::Message(Log::LT_INFO, "ProcessMouseWheel %.9g %d", wheel_delta, key_modifier_state);
+
 	if (hover)
 	{
 		Dictionary scroll_parameters;
